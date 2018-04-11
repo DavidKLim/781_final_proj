@@ -1,5 +1,19 @@
 #Bios 781 Final Project 
+##### Outline of task 
+##1: generate alleles to determine genotype (0,1,2) at SNPs (s) and disease status for n subjects
+#(casual SNPs [s1] and regualr [s2] should be generate differnetly)
+##2: run regression (linear or logit) on simulated data 
+##3: select top c1 beta parameters (i.e. lowest p-value) to be number of causal SNPs (c1 < s)
+##4: calcualte PRS using c1 beta parameters on each subject (n)
+##5: calcualte prediction accuracy of PRS (need a threshold.. determine through 95th quantile of n subjects? )
+##6: repeat r times, get average prediction accuracy for set up s, n, c1. 
 
+##7: will need to change s (number of SNPS), n (number of subjects), and c1 (number of casual SNPs) 
+#to see how it affects prediction accuracy of PRS. Not sure best way to represent this... 3 different 2x2 tables? 
+#i.e. sxn, sxc1, nxc1
+
+
+###########Example Code ################
 library(PredictABEL)
 # specify dataset with outcome and predictor variables
 data(ExampleData)
@@ -21,7 +35,6 @@ weighted_riskScore <- riskScore(weights=riskmodel, data=ExampleData,
 
 
 #################################################
-
 
 
 n = 100
