@@ -1,7 +1,7 @@
 #Bios 781 Final Project 
 ##### Outline of task 
 ##1: generate alleles to determine genotype (0,1,2) at SNPs (s) and disease status for n subjects
-#(casual SNPs [s1] and regualr [s2] should be generate differnetly)
+#(causal SNPs [s1] and regualr [s2] should be generate differnetly)
 ##2: run regression (linear or logit) on simulated data 
 ##3: select top c1 beta parameters (i.e. lowest p-value) to be number of causal SNPs (c1 < s)
 ##4: calcualte PRS using c1 beta parameters on each subject (n)
@@ -35,6 +35,8 @@ weighted_riskScore <- riskScore(weights=riskmodel, data=ExampleData,
 
 
 #################################################
+
+
 
 
 n = 100
