@@ -37,36 +37,49 @@ weighted_riskScore <- riskScore(weights=riskmodel, data=ExampleData,
 #################################################
 
 
+set.seed(9)
+# inputs: n, g_causal, g, prevalence
 
-
-n = 100
-n_SNP = 2
-n_cSNP = 1
-
-disease = rbinom(n,1,0.2)
-
-SNP1 = rep(0,n)     # causal
-SNP2 = rep(0,n)     # non causal
-
-for(i in 1:n){
-  if(disease[i]==1){
-    SNP1[i] = rbinom(1,2,0.65)     # 0.8 for higher frequency of geno = 2?
-  } else {
-    SNP1[i] = rbinom(1,1,0.5)     # is this p = 0.5? H-W-E?
+PRS <- function(n,g_causal,g,prevalence){
+  g_non = g - g_causal
+  disease = rbinom(n,1,prevalence)
+  
+  p = c(runif(g_causal,0.1,0.15),runif(g_non,0.3,0.5))
+  
+  dat = data.frame(matrix(0,nrow=n,ncol=g+1))
+  dat[,1] = disease
+  
+  for(i in 1:n){
+    for(j in 1:g_causal){
+      if(disease[i]==1){
+        dat[i,j+1] = rbinom(1,2,p[j])     # 0.8 for higher frequency of geno = 2?
+      } else {
+        dat[i,j+1] = rbinom(1,2,1-p[j])     # is this p = 0.5? H-W-E?
+      }
+    }
+    
+    for(j in (g_causal+1):g){
+      dat[i,j+1] = rbinom(1,2,p[j])
+    }
   }
   
-  SNP2[i] = rbinom(1,2,0.5)      # is this p = 0.5? HWE?
+  fit = glm(X1 ~ ., family=binomial("logit"), data=dat)
+  
+  riskScore <- riskScore(weights=fit, data=dat,
+                                    cGenPreds=c(2:4), Type="weighted")   # make way to SELECT cGenPreds from fit (significant betas)
+  
+  threshold = quantile(riskScore,1-prevalence)
+  pred_disease = which(riskScore >= threshold)
+  true_disease = which(disease==1)
+  
+  sens = sum(pred_disease %in% true_disease)/length(true_disease)
+  falsepos = sum(!(pred_disease %in% true_disease))/(n-length(true_disease))
+
+  results = list(sens=sens,
+                 falsepos=falsepos)
 }
-
-dat = data.frame(cbind(disease,SNP1,SNP2))
-
-fit = glm(disease~SNP1+SNP2, family=binomial("logit"), data=dat)
-
-unweighted_riskScore <- riskScore(weights=fit, data=dat,
-                                  cGenPreds=c(2:3), Type="unweighted")
-weighted_riskScore <- riskScore(weights=fit, data=dat,
-                                  cGenPreds=c(2:3), Type="weighted")
-
-
-
+sim = 100
+for(s in 1:sim){
+  X = PRS(n=1000,g_causal=3,g=10,prevalence=0.2)
+}
 
