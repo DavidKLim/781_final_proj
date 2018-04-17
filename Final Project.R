@@ -74,18 +74,21 @@ PRS <- function(n,g_causal,g,prevalence){
   
   #calculate weights for polygenic score
   fit = glm(X1 ~ ., family=binomial("logit"), data=dat)
+  pvals = coef(summary(fit))[-1,4]      # stores pvalues (omits intercept)
+  select_gen = which(pvals < 0.05)   # Select based on pvalue = 0.05 (is this threshold ok?? maybe bonferroni?)
   
-  ##calcualte PRS (select number of casual SNPs used to calcualte )
+  
+  ##calculate PRS (select number of casual SNPs used to calculate )
   riskScore <- riskScore(weights=fit, data=dat,
-                                    cGenPreds=c(2:4), Type="weighted")   # make way to SELECT cGenPreds from fit (significant betas)
+                                    cGenPreds=select_gen+1, Type="weighted")   # add 1 to account for intercept
   
   ##Determine predicted disease status 
-  #calcualte PRS 0.95 threshold 
+  #calculate PRS 0.95 threshold 
   threshold = quantile(riskScore,1-prevalence)
   pred_disease = which(riskScore >= threshold) #predicted deiseased
   true_disease = which(disease==1) #actual diseased
   
-  ### PRS perfomrance statistics ###
+  ### PRS performance statistics ###
   # Sensitivity
   sens = sum(pred_disease %in% true_disease)/length(true_disease)
   #False Positive 
@@ -101,6 +104,7 @@ PRS <- function(n,g_causal,g,prevalence){
 #2. Change in # of SNPs simulated (g): 2, 10, 100, 1000 
 #3. Change in # of causal SNPs selected in PRS calculation (k): 0.25*SNPs, 0.5*SNPs, 0.75*SNPs, total
 #4. Change in # of causal SNPs simulated (g_causal): 0.25*SNPs, 0.5*SNPs, 0.75*SNPs
+#5(?). Change in pvalue threshold to select risk SNPs?
 
 # we could just do one of 3 or 4. not sure what the correct interpretation is...
 
@@ -119,8 +123,13 @@ PRS <- function(n,g_causal,g,prevalence){
 ## Can also produce bar plots of the above table comparisons 
 
 
-sim = 100
+sim = 10
+sens = rep(0,sim)
+falsepos = rep(0,sim)
 for(s in 1:sim){
-  X = PRS(n=1000,g_causal=3,g=10,prevalence=0.2)
+  X = PRS(n=10000,g_causal=3,g=10,prevalence=0.2)
+  sens[s] = X$sens
+  falsepos[s] = X$falsepos
 }
+
 
