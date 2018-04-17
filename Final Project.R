@@ -41,6 +41,10 @@ set.seed(9)
 # inputs: n, g_causal, g, prevalence
 
 PRS <- function(n,g_causal,g,prevalence){
+  if(g_causal > g){
+    warning("Number of causal SNPs greater than number of SNPs. Setting them equal.")
+    g_causal = g
+  }
   #n= training sample size, g_causual= number of casual SNPs, g= total number of SNPS, prevalence=disease prev
   #create dataset (columns: disease status, Causual SNP genotypes, non-causual SNP genotypes)
   dat = data.frame(matrix(0,nrow=n,ncol=g+1))
@@ -74,6 +78,12 @@ PRS <- function(n,g_causal,g,prevalence){
   
   #calculate weights for polygenic score
   fit = glm(X1 ~ ., family=binomial("logit"), data=dat)
+  
+  fit = fitLogRegModel(data=dat,cOutcome=1,
+                       cNonGenPreds=c(0),cNonGenPredsCat=c(0),
+                       cGenPreds=c(2:ncol(dat)),cGenPredsCat=c(0))     # same thing as glm() above.
+                                                      # can include categorical predictors????
+  
   pvals = coef(summary(fit))[-1,4]      # stores pvalues (omits intercept)
   select_gen = which(pvals < 0.05)   # Select based on pvalue = 0.05 (is this threshold ok?? maybe bonferroni?)
   
@@ -94,6 +104,7 @@ PRS <- function(n,g_causal,g,prevalence){
   #False Positive 
   falsepos = sum(!(pred_disease %in% true_disease))/(n-length(true_disease))
 
+  
   results = list(sens=sens,
                  falsepos=falsepos)
 }
@@ -127,9 +138,15 @@ sim = 10
 sens = rep(0,sim)
 falsepos = rep(0,sim)
 for(s in 1:sim){
-  X = PRS(n=10000,g_causal=3,g=10,prevalence=0.2)
+  X = PRS(n=100,g_causal=30,g=100,prevalence=0.2)
   sens[s] = X$sens
   falsepos[s] = X$falsepos
-}
+  print(paste("Simulation s: sens =",sens[s],"falsepos =",falsepos[s]))   # Tracks progress. Can comment out
+}                   # increasing n prevents glm nonconvergence error
+                    # also, i'm pretty sure n has to be > g..
+
+mean(sens)
+mean(falsepos)
+
 
 
