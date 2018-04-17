@@ -13,7 +13,7 @@
 #i.e. sxn, sxc1, nxc1
 
 
-###########Example Code ################
+########### Example Code ################
 library(PredictABEL)
 # specify dataset with outcome and predictor variables
 data(ExampleData)
@@ -34,50 +34,91 @@ weighted_riskScore <- riskScore(weights=riskmodel, data=ExampleData,
                                   cGenPreds=cGenPred, Type="weighted")
 
 
-#################################################
+########################Step 1-5: Creating Function###################################
 
 
 set.seed(9)
 # inputs: n, g_causal, g, prevalence
 
 PRS <- function(n,g_causal,g,prevalence){
-  g_non = g - g_causal
-  disease = rbinom(n,1,prevalence)
-  
-  p = c(runif(g_causal,0.1,0.15),runif(g_non,0.3,0.5))
-  
+  #n= training sample size, g_causual= number of casual SNPs, g= total number of SNPS, prevalence=disease prev
+  #create dataset (columns: disease status, Causual SNP genotypes, non-causual SNP genotypes)
   dat = data.frame(matrix(0,nrow=n,ncol=g+1))
+  
+  #number of non-causal SNPs
+  g_non = g - g_causal
+  
+  #simulate the disease status using prevalence parameter
+  disease = rbinom(n,1,prevalence)
   dat[,1] = disease
   
+  #simulate MAF for casual SNPs and non-casual SNPs
+  p = c(runif(g_causal,0.1,0.15),runif(g_non,0.3,0.5))
+  
+  ##simulate genotype dataset for SNPs
+  #WLOG assume MAF associated iwth disease in causual SNPs
   for(i in 1:n){
     for(j in 1:g_causal){
+      #for Casual SNPs
       if(disease[i]==1){
-        dat[i,j+1] = rbinom(1,2,p[j])     # 0.8 for higher frequency of geno = 2?
+        dat[i,j+1] = rbinom(1,2,p[j])     
       } else {
-        dat[i,j+1] = rbinom(1,2,1-p[j])     # is this p = 0.5? H-W-E?
+        dat[i,j+1] = rbinom(1,2,1-p[j])     
       }
     }
-    
+      #for non-causal SNPs
     for(j in (g_causal+1):g){
       dat[i,j+1] = rbinom(1,2,p[j])
     }
   }
   
+  #calculate weights for polygenic score
   fit = glm(X1 ~ ., family=binomial("logit"), data=dat)
   
+  ##calcualte PRS (select number of casual SNPs used to calcualte )
   riskScore <- riskScore(weights=fit, data=dat,
                                     cGenPreds=c(2:4), Type="weighted")   # make way to SELECT cGenPreds from fit (significant betas)
   
+  ##Determine predicted disease status 
+  #calcualte PRS 0.95 threshold 
   threshold = quantile(riskScore,1-prevalence)
-  pred_disease = which(riskScore >= threshold)
-  true_disease = which(disease==1)
+  pred_disease = which(riskScore >= threshold) #predicted deiseased
+  true_disease = which(disease==1) #actual diseased
   
+  ### PRS perfomrance statistics ###
+  # Sensitivity
   sens = sum(pred_disease %in% true_disease)/length(true_disease)
+  #False Positive 
   falsepos = sum(!(pred_disease %in% true_disease))/(n-length(true_disease))
 
   results = list(sens=sens,
                  falsepos=falsepos)
 }
+
+######################## Step 6-7: Simulations ###################################
+### Adjustments: 
+#1. Change in Training sample size (n): 10, 100, 1000, 10000
+#2. Change in # of SNPs simulated (g): 2, 10, 100, 1000 
+#3. Change in # of causal SNPs selected in PRS calculation (k): 0.25*SNPs, 0.5*SNPs, 0.75*SNPs, total
+#4. Change in # of causal SNPs simulated (g_causal): 0.25*SNPs, 0.5*SNPs, 0.75*SNPs
+
+# we could just do one of 3 or 4. not sure what the correct interpretation is...
+
+## Simulation Table: 1 x 2
+
+## Simulation Table: 1 x 3
+
+## Simulation Table: 1 x 4
+
+## Simulation Table 2 x 3 
+
+## Simulation Table 2 x 4
+
+## Simulation Table 3 x 4 ?? 
+
+## Can also produce bar plots of the above table comparisons 
+
+
 sim = 100
 for(s in 1:sim){
   X = PRS(n=1000,g_causal=3,g=10,prevalence=0.2)
