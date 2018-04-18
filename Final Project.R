@@ -11,10 +11,10 @@
 ##7: will need to change s (number of SNPS), n (number of subjects), and c1 (number of casual SNPs) 
 #to see how it affects prediction accuracy of PRS. Not sure best way to represent this... 3 different 2x2 tables? 
 #i.e. sxn, sxc1, nxc1
-
+library(PredictABEL)
+library(hdlm)
 
 ########### Example Code ################
-library(PredictABEL)
 # specify dataset with outcome and predictor variables
 data(ExampleData)
 
@@ -40,7 +40,7 @@ weighted_riskScore <- riskScore(weights=riskmodel, data=ExampleData,
 set.seed(9)
 # inputs: n, g_causal, g, prevalence
 
-PRS <- function(n,g_causal,g,prevalence){
+PRS <- function(n,g_causal,g,prevalence,k){
   if(g_causal > g){
     warning("Number of causal SNPs greater than number of SNPs. Setting them equal.")
     g_causal = g
@@ -57,7 +57,7 @@ PRS <- function(n,g_causal,g,prevalence){
   dat[,1] = disease
   
   #simulate MAF for casual SNPs and non-casual SNPs
-  p = c(runif(g_causal,0.1,0.15),runif(g_non,0.3,0.5))
+  p = c(runif(g_causal,0.1,0.2),runif(g_non,0.4,0.5))
   
   ##simulate genotype dataset for SNPs
   #WLOG assume MAF associated iwth disease in causual SNPs
@@ -78,15 +78,17 @@ PRS <- function(n,g_causal,g,prevalence){
   
   #calculate weights for polygenic score
   fit = glm(X1 ~ ., family=binomial("logit"), data=dat)
+  #fit = hdglm(X1 ~ ., family='binomial', data=dat)
+  #fit = HDGLM_test(dat[,1], dat[,2:ncol(dat)], model = "logistic")
   
-  fit = fitLogRegModel(data=dat,cOutcome=1,
-                       cNonGenPreds=c(0),cNonGenPredsCat=c(0),
-                       cGenPreds=c(2:ncol(dat)),cGenPredsCat=c(0))     # same thing as glm() above.
+  #fit = fitLogRegModel(data=dat,cOutcome=1,
+  #                     cNonGenPreds=c(0),cNonGenPredsCat=c(0),
+  #                     cGenPreds=c(2:ncol(dat)),cGenPredsCat=c(0))     # same thing as glm() above.
                                                       # can include categorical predictors????
   
   pvals = coef(summary(fit))[-1,4]      # stores pvalues (omits intercept)
-  select_gen = which(pvals < 0.05)   # Select based on pvalue = 0.05 (is this threshold ok?? maybe bonferroni?)
-  
+  #select_gen = which(pvals < 0.05)   # Select based on pvalue = 0.05 (is this threshold ok?? maybe bonferroni?)
+  select_gen = order(pvals)[1:k]
   
   ##calculate PRS (select number of casual SNPs used to calculate )
   riskScore <- riskScore(weights=fit, data=dat,
@@ -138,7 +140,7 @@ sim = 10
 sens = rep(0,sim)
 falsepos = rep(0,sim)
 for(s in 1:sim){
-  X = PRS(n=100,g_causal=30,g=100,prevalence=0.2)
+  X = PRS(n=1000,g_causal=3,g=200,prevalence=0.2,k=3)
   sens[s] = X$sens
   falsepos[s] = X$falsepos
   print(paste("Simulation s: sens =",sens[s],"falsepos =",falsepos[s]))   # Tracks progress. Can comment out
