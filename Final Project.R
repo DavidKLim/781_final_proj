@@ -1,5 +1,15 @@
 #Bios 781 Final Project 
 ##### Outline of task 
+#1. simulate g_causual x_i and simulate g-g_causal x_i (using the different MAF as before) for n individuals
+#2. Calcuate y by setting g_casual betas 
+#3. Fit g_causal glm models (Y=beta1+error... Y=beta_gcausal +error)
+#4. Simulate another set of n individuals ( same way as #1) -- test set
+#5. Calculate polygenic risk score for test set (use beta estimates of #3)
+#6. Calculate actual disease status using set betas (set in #2)
+#7. If this method is good, then the PRS and Disease status of test set will be correlated 
+  #I think we can just use sensitivity and FDR. I will think if there is another correlated stat that is better 
+#change g_casual, g, and n 
+
 ##1: generate alleles to determine genotype (0,1,2) at SNPs (s) and disease status for n subjects
 #(causal SNPs [s1] and regualr [s2] should be generate differnetly)
 ##2: run regression (linear or logit) on simulated data 
