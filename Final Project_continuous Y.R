@@ -43,7 +43,7 @@ PRS <- function(n,g_causal,g){
   
   for(i in 2:g_causal+1){
   red.data=dat[, c(1:i)]
-  beta.pred[i-1,] = glm(X1 ~ ., family=binomial("logit"), data=red.data) #oops, not quite right. 
+  beta.pred[i-1,] = glm(X1 ~ ., family=binomial("logit"), data=red.data) #oops, distribution not quite right. 
   }
   
   ##calculate PRS (select number of casual SNPs used to calculate )
