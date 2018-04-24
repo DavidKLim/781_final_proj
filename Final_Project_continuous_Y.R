@@ -81,18 +81,46 @@ results[,1]=rep(n,times=length(g)*length(gcaus))
 results[,2]=rep(rep(g,times=length(gcaus)),each=length(n))
 results[,3]=rep(gcaus,each=length(n)*length(g))
 
-sim=10
-for(i in 1:nrow(results)){
+sim=100
+
+library(parallel)
+no_cores=12
+
+# # Non-parallelized
+# for(i in 1:nrow(results)){
+#   gcaus = results[i,3]*results[i,2]
+#   corr = rep(0,sim)
+#   b1 = runif(gcaus,0,1)
+#   for(s in 1:sim){
+#     X = PRS(n=results[i,1],g=results[i,2],g_causal=gcaus,b=b1)
+#     corr[s] = X
+#     print(paste("conditions:",results[i,],"Simulation s: corr =",corr[s]))   # Tracks progress. Can comment out
+#   }
+#   results[i,4] = mean(corr)
+# }
+
+par_sim_run = function(i){
   gcaus = results[i,3]*results[i,2]
   corr = rep(0,sim)
   b1 = runif(gcaus,0,1)
   for(s in 1:sim){
+    start=Sys.time()
     X = PRS(n=results[i,1],g=results[i,2],g_causal=gcaus,b=b1)
+    end=Sys.time()
     corr[s] = X
-    print(paste("conditions:",results[i,],"Simulation s: corr =",corr[s]))   # Tracks progress. Can comment out
+    print(paste("time elapsed:",start-end))
+    #print(paste("conditions:",results[i,],"Simulation s: corr =",corr[s]))   # Tracks progress. Can comment out
   }
   results[i,4] = mean(corr)
+  print(results[i,4])
 }
+
+cl<-makeCluster(no_cores,outfile="781_out.txt")
+clusterExport(cl=cl,varlist=c(ls(),"PRS","par_sim_run"))
+
+results[,4] = parSapply(cl, 1:nrow(results), par_sim_run)
+
+stopCluster(cl)
 
 save(results,file="781_res.out")
 
